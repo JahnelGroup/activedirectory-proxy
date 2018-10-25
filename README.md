@@ -16,7 +16,7 @@ The resulting artifact will be located at `./build/libs/activedirectory-proxy*.j
 There are a few options to building the Docker Image, the first method is the recommended option
 
 1) This will build the JAR artifact and create an image that is tagged latest as well as the version number of the artifact 
-(e.g. jahnelgroup/activedirectory-proxy:1.0.2). This is the recommended method of building
+(e.g. jahnelgroup/activedirectory-proxy:1.0.2).
 ```
 ./gradlew createDockerImage -Ppatch_version=${CURRENT_PATCH_VERSION}
 ```
@@ -28,7 +28,7 @@ docker build -t jahnelgroup/activedirectory-proxy:latest .
 ```
 
 ## How to Run
-The application expects five (5) properties to be set during startup. They are:
+The application expects five (5) properties to be set during startup, they are:
 * zuul.routes.service.path
 * zuul.routes.service.url
 * ldap.domain
