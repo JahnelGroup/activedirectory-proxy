@@ -13,17 +13,19 @@ The Docker image is a simple wrapper around the JAR file to make it easier to de
 The resulting artifact will be located at `./build/libs/activedirectory-proxy*.jar`
 
 ### Building a Docker Image
+There are a few options to building the Docker Image, the first method is the recommended option
+
+1) This will build the JAR artifact and create an image that is tagged latest as well as the version number of the artifact 
+(e.g. jahnelgroup/activedirectory-proxy:1.0.2). This is the recommended method of building
 ```
 ./gradlew createDockerImage -Ppatch_version=${CURRENT_PATCH_VERSION}
 ```
-This will build the JAR artifact and create an image that is tagged latest as well as the version number of the artifact 
-(e.g. jahnelgroup/activedirectory-proxy:1.0.2). This is the preferred method of building
 
+2) This will create an image that is tagged latest. Note that the JAR artifact will need to be built before this, see 
+[Building a JAR Package](#building-a-jar-package)
 ```
 docker build -t jahnelgroup/activedirectory-proxy:latest .
 ```
-This will create an image that is tagged latest. Note that the JAR artifact will need to be built before this, see 
-[Building a JAR Package](#building-a-jar-package)
 
 ## How to Run
 The application expects five (5) properties to be set during startup. They are:
@@ -32,7 +34,6 @@ The application expects five (5) properties to be set during startup. They are:
 * ldap.domain
 * ldap.url
 * ldap.searchFilter
-
 
 ### Running the JAR Package
 If you elected to package as a JAR only, then use the following example to run the application:
