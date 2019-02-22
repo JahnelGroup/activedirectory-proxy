@@ -1,105 +1,105 @@
 import java.text.SimpleDateFormat
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-
-if (!project.hasProperty("patch_version")) {
-    ext.patch_version = "0"
-}
 
 buildscript {
-    ext {
-        kotlinVersion = '1.2.51'
-        springBootVersion = '2.0.6.RELEASE'
-    }
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-        classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
-        classpath("com.bmuschko:gradle-docker-plugin:4.0.1")
-
-    }
+	dependencies{
+		classpath("gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.21.0")
+	}
 }
 
-apply plugin: 'kotlin'
-apply plugin: 'kotlin-spring'
-apply plugin: 'eclipse'
-apply plugin: 'org.springframework.boot'
+plugins {
+	id 'org.springframework.boot' version '2.1.3.RELEASE'
+	id 'org.jetbrains.kotlin.jvm' version '1.2.71'
+	id 'org.jetbrains.kotlin.plugin.spring' version '1.2.71'
+}
+
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'com.bmuschko.docker-remote-api'
+apply plugin: 'com.palantir.docker'
 
-group = 'com.jahnelgroup.util'
-version = "${project.property('major_version')}.${project.property('minor_version')}.${project.property('patch_version')}"
-sourceCompatibility = 1.8
-
-compileKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "1.8"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "1.8"
-    }
-}
+group = 'com.jahnelgroup'
+version = '1.0.0'
+sourceCompatibility = '1.8'
 
 repositories {
-    jcenter()
+	mavenCentral()
+	// Zuul
+	maven { url 'https://repo.spring.io/milestone' }
+	// gradle-docker
+	maven { url "https://plugins.gradle.org/m2/" }
 }
 
 ext {
-    springCloudVersion = 'Finchley.SR1'
+	set('springCloudVersion', 'Greenwich.RELEASE')
+	set('mainClassNameForDocker', 'com.jahnelgroup.adproxy.AppKt')
 }
 
 dependencies {
-    implementation('org.springframework.boot:spring-boot-starter-data-ldap')
-    implementation('org.springframework.boot:spring-boot-starter-security')
-    implementation('org.springframework.ldap:spring-ldap-core')
-    implementation('org.springframework.security:spring-security-ldap')
-    implementation('org.springframework.boot:spring-boot-starter-web')
-    implementation('com.unboundid:unboundid-ldapsdk')
-    implementation('com.fasterxml.jackson.module:jackson-module-kotlin')
-    implementation('org.springframework.cloud:spring-cloud-starter-netflix-zuul')
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation('org.springframework.boot:spring-boot-starter-test')
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation('org.springframework.boot:spring-boot-starter-thymeleaf')
+	implementation 'org.springframework.security:spring-security-ldap'
+	implementation 'org.springframework.security:spring-security-config'
+	implementation 'org.springframework:spring-context-support'
+	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity5:+'
+	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-zuul'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 }
 
 dependencyManagement {
-    imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-    }
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
 }
 
+compileKotlin {
+	kotlinOptions {
+		freeCompilerArgs = ['-Xjsr305=strict']
+		jvmTarget = '1.8'
+	}
+}
+
+compileTestKotlin {
+	kotlinOptions {
+		freeCompilerArgs = ['-Xjsr305=strict']
+		jvmTarget = '1.8'
+	}
+}
+
+// Docker
+// =========================
+// unpacking spring fat jar is faster in a docker container
+task unpack(type: Copy) {
+	dependsOn bootJar
+	from(zipTree(tasks.bootJar.outputs.files.singleFile))
+	into("build/dependency")
+}
+
+docker {
+	name "${project.group}/${bootJar.baseName}:${project.version}"
+	copySpec.from(tasks.unpack.outputs).into("dependency")
+	buildArgs(['DEPENDENCY': "dependency", 'MAIN_CLASS': mainClassNameForDocker])
+}
+// automatically run a build before containerizing the app
+docker.dependsOn build
+
+
+// Spring Boot
+//
 springBoot {
-    buildInfo {
-        properties {
-            version = "${project.property('major_version')}.${project.property('minor_version')}.${project.property('patch_version')}"
-            additional = [
-                "time": buildTime()
-            ]
-        }
-    }
-}
-
-bootJar {
-    launchScript()
-//	excludeDevtools = false
-}
-
-build.shouldRunAfter clean
-
-task createDockerImage(type: DockerBuildImage) {
-    dependsOn clean, build
-    inputDir = file('.')
-    tags = ["jahnelgroup/activedirectory-proxy:${project.version}", "jahnelgroup/activedirectory-proxy:latest"]
+	buildInfo {
+		properties {
+			additional = [
+					"time": buildTime()
+			]
+		}
+	}
 }
 
 static def buildTime() {
-    final dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
-    dateFormat.timeZone = TimeZone.getTimeZone('GMT')
-    dateFormat.format(new Date())
+	final dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
+	dateFormat.timeZone = TimeZone.getTimeZone('GMT')
+	dateFormat.format(new Date())
 }
