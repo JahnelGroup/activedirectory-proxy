@@ -1,13 +1,18 @@
+# https://spring.io/guides/gs/spring-boot-docker/
+
 FROM openjdk:8-jdk-alpine
 
-LABEL maintainer="jbeckman@jahnelgroup.com"
+# This is where a Spring Boot creates working directories for Tomcat by default
+VOLUME /tmp
 
-EXPOSE 8080
+# Copy the build archive into the container
+ARG DEPENDENCY=target/dependency
+COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
+COPY ${DEPENDENCY}/META-INF /app/META-INF
+COPY ${DEPENDENCY}/BOOT-INF/classes /app
 
-RUN mkdir -p /usr/activedirectory-proxy/logs
-VOLUME /usr/activedirectory-proxy/logs
+#  This is faster than using the indirection provided by the fat jar launcher
+ARG MAIN_CLASS
+ENV MAIN_CLASS=$MAIN_CLASS
 
-COPY build/libs/activedirectory-proxy*.jar /usr/activedirectory-proxy/activedirectory-proxy.jar
-
-WORKDIR /usr/activedirectory-proxy
-ENTRYPOINT ["java", "-jar", "./activedirectory-proxy.jar"]
+ENTRYPOINT exec java -cp app:app/lib/* $MAIN_CLASS

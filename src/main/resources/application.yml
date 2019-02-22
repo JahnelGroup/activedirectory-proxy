@@ -1,0 +1,20 @@
+zuul:
+  routes:
+    service:
+      path: /**
+      url: http://127.0.0.1:8080/proxy/help.html
+  ignored-patterns: /login*, /logout*, /proxy/**
+
+ldap:
+  domain: myad.mydomain.com
+  url: ldap://myad.mydomain.com:389
+  searchFilter: (&(objectClass=user)(userPrincipalName={0}))
+
+management:
+  health:
+    ldap:
+      enabled: false
+app:
+  proxied-app-name: Proxied App
+  instructions: Sign in with your corporate Active Directory account.
+  help: Call the Ghost Busters for support.
