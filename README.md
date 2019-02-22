@@ -20,7 +20,7 @@ Build the docker image.
 The resulting image will be loaded in your local system with the respective version tag:
 
 ```bash
-[szgaljic@challenger images]$ docker images
+$ docker images
 REPOSITORY                                          TAG                 IMAGE ID            CREATED             SIZE
 com.jahnelgroup/activedirectory-proxy               1.0.0               38378b7968bf        23 minutes ago      145MB
 ```
